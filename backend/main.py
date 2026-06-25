@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from backend.api import feedback, health, ingest, query
+from backend.api import admin, feedback, health, ingest, query
 from backend.security.ratelimit import limiter
 from core.db import dispose_engine
 from slowapi import _rate_limit_exceeded_handler
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(query.router)
     app.include_router(ingest.router)
     app.include_router(feedback.router)
+    app.include_router(admin.router)
     return app
 
 
