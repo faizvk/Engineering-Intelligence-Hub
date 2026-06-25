@@ -1,4 +1,5 @@
-// Consume the backend SSE endpoint (event: token | sources | usage | done).
+// Consume the backend SSE endpoint (event: token | sources | usage | done)
+// and post feedback.
 export interface Citation {
   quoted_text?: string | null;
   document_title?: string | null;
@@ -6,19 +7,29 @@ export interface Citation {
   source_uri?: string | null;
 }
 
+export interface Usage {
+  model?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  cost_usd?: number | null;
+}
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function streamAnswer(
   question: string,
-  onToken: (t: string) => void,
-  onSources: (c: Citation[]) => void,
+  handlers: {
+    onToken: (t: string) => void;
+    onSources: (c: Citation[]) => void;
+    onUsage?: (u: Usage) => void;
+  },
 ): Promise<void> {
   const res = await fetch(`${API}/query/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),
   });
-  if (!res.body) throw new Error("no response stream");
+  if (!res.ok || !res.body) throw new Error(`backend error ${res.status}`);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -32,8 +43,17 @@ export async function streamAnswer(
     for (const frame of frames) {
       const ev = /event: (.+)/.exec(frame)?.[1];
       const data = JSON.parse(/data: (.+)/.exec(frame)?.[1] ?? "{}");
-      if (ev === "token") onToken(data.text);
-      else if (ev === "sources") onSources(data.citations ?? []);
+      if (ev === "token") handlers.onToken(data.text);
+      else if (ev === "sources") handlers.onSources(data.citations ?? []);
+      else if (ev === "usage") handlers.onUsage?.(data as Usage);
     }
   }
+}
+
+export async function sendFeedback(answerId: string, rating: 1 | -1): Promise<void> {
+  await fetch(`${API}/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answer_id: answerId, rating }),
+  });
 }

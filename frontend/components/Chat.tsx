@@ -1,12 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Citation, streamAnswer } from "@/lib/useChatStream";
+import { Citation, Usage, sendFeedback, streamAnswer } from "@/lib/useChatStream";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
+  usage?: Usage;
+  rated?: 1 | -1;
+  error?: boolean;
 }
 
 function uniqueSources(citations: Citation[]): string[] {
@@ -22,47 +26,48 @@ function uniqueSources(citations: Citation[]): string[] {
   return out;
 }
 
+let _counter = 0;
+const nextId = () => `m${++_counter}`;
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
+  function patchLast(patch: Partial<Message>) {
+    setMessages((m) => {
+      const next = [...m];
+      next[next.length - 1] = { ...next[next.length - 1], ...patch };
+      return next;
+    });
+  }
+
   async function ask() {
     const question = input.trim();
     if (!question || busy) return;
     setInput("");
     setBusy(true);
-    setMessages((m) => [...m, { role: "user", content: question }, { role: "assistant", content: "" }]);
+    setMessages((m) => [
+      ...m,
+      { id: nextId(), role: "user", content: question },
+      { id: nextId(), role: "assistant", content: "" },
+    ]);
 
     try {
-      await streamAnswer(
-        question,
-        (t) =>
+      await streamAnswer(question, {
+        onToken: (t) =>
           setMessages((m) => {
             const next = [...m];
-            next[next.length - 1] = {
-              ...next[next.length - 1],
-              content: next[next.length - 1].content + t,
-            };
+            const last = next[next.length - 1];
+            next[next.length - 1] = { ...last, content: last.content + t };
             return next;
           }),
-        (citations) =>
-          setMessages((m) => {
-            const next = [...m];
-            next[next.length - 1] = { ...next[next.length - 1], citations };
-            return next;
-          }),
-      );
-    } catch {
-      setMessages((m) => {
-        const next = [...m];
-        next[next.length - 1] = {
-          ...next[next.length - 1],
-          content: next[next.length - 1].content || "Could not reach the backend.",
-        };
-        return next;
+        onSources: (citations) => patchLast({ citations }),
+        onUsage: (usage) => patchLast({ usage }),
       });
+    } catch {
+      patchLast({ content: "Could not reach the backend.", error: true });
     } finally {
       setBusy(false);
     }
@@ -72,6 +77,15 @@ export default function Chat() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       ask();
+    }
+  }
+
+  async function rate(msg: Message, rating: 1 | -1) {
+    try {
+      await sendFeedback(msg.id, rating);
+      setMessages((m) => m.map((x) => (x.id === msg.id ? { ...x, rated: rating } : x)));
+    } catch {
+      /* feedback is best-effort */
     }
   }
 
@@ -90,7 +104,7 @@ export default function Chat() {
           </p>
         )}
         {messages.map((m, i) => (
-          <div className={`msg ${m.role}`} key={i}>
+          <div className={`msg ${m.role}`} key={m.id}>
             <span className="role">{m.role}</span>
             {m.role === "assistant" ? (
               <>
@@ -108,6 +122,23 @@ export default function Chat() {
                     ))}
                   </div>
                 )}
+                {!m.error && m.content && (
+                  <div className="feedback">
+                    <button aria-label="Helpful" disabled={!!m.rated} onClick={() => rate(m, 1)}>
+                      {m.rated === 1 ? "Marked helpful" : "Helpful"}
+                    </button>
+                    <button
+                      aria-label="Not helpful"
+                      disabled={!!m.rated}
+                      onClick={() => rate(m, -1)}
+                    >
+                      {m.rated === -1 ? "Marked not helpful" : "Not helpful"}
+                    </button>
+                    {m.usage?.cost_usd != null && (
+                      <span className="cost">${m.usage.cost_usd.toFixed(4)}</span>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <div className="bubble">{m.content}</div>
@@ -123,6 +154,7 @@ export default function Chat() {
           placeholder="Ask an engineering question…"
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
+          aria-label="Ask an engineering question"
         />
         <button onClick={ask} disabled={busy || !input.trim()}>
           {busy ? "…" : "Ask"}

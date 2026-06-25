@@ -132,6 +132,16 @@ a:hover {
 .feedback button:hover {
   color: var(--text);
 }
+.feedback button:disabled {
+  color: var(--accent);
+  cursor: default;
+}
+.feedback .cost {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
 
 .composer {
   position: sticky;

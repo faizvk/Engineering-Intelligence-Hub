@@ -16,6 +16,7 @@ from typing import AsyncIterator
 
 import anthropic
 
+from backend.cost.meter import cost_usd
 from backend.llm.answer import answer
 from backend.llm.client import DEFAULT_MODEL
 from backend.rag.pipeline import docs_to_chunks, retrieve
@@ -111,6 +112,7 @@ async def stream_query(
             _persist(history, question, res.text)
             q.put(("sources", {"citations": [c.model_dump() for c in res.citations]}))
             if res.usage is not None:
+                res.usage.cost_usd = cost_usd(res.usage)  # so the UI can show it
                 q.put(("usage", res.usage.model_dump()))
         except Exception as exc:  # surface failures as a terminal event
             q.put(("error", {"detail": str(exc)}))
