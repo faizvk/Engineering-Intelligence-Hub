@@ -1,0 +1,32 @@
+{
+  "issues": [
+    {
+      "key": "PROD-4821",
+      "fields": {
+        "summary": "Checkout service returns 503 / ConnectionPoolTimeout under load",
+        "status": { "name": "Resolved" },
+        "priority": { "name": "SEV-2" },
+        "description": "During the Tuesday traffic peak the checkout service began returning HTTP 503 with ConnectionPoolTimeout errors. Root cause: the Postgres connection pool was exhausted because a slow query held connections open with no statement timeout, so new requests waited past the pool checkout deadline.",
+        "resolution": { "description": "Added statement_timeout=3s on the checkout role and capped the pgbouncer pool_size. Pool exhaustion has not recurred." },
+        "created": "2026-03-14T09:20:00Z",
+        "assignee": { "displayName": "On-call Engineer" },
+        "components": [{ "name": "checkout" }],
+        "labels": ["postmortem", "database", "pgbouncer"]
+      }
+    },
+    {
+      "key": "PROD-5099",
+      "fields": {
+        "summary": "Duplicate charge regression in payments under retry",
+        "status": { "name": "Resolved" },
+        "priority": { "name": "SEV-1" },
+        "description": "Customers were charged twice for a single order. The payments service retried the capture call on a timeout, but the capture was not idempotent, so a duplicate_charge was created when the original request had actually succeeded.",
+        "resolution": { "description": "Made payment capture idempotent with a per-order idempotency key; retries now de-duplicate at the provider." },
+        "created": "2026-04-12T17:05:00Z",
+        "assignee": { "displayName": "Payments On-call" },
+        "components": [{ "name": "payments" }],
+        "labels": ["postmortem", "idempotency"]
+      }
+    }
+  ]
+}
