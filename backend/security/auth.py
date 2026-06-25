@@ -40,3 +40,10 @@ def current_principal(
     # Expose to the rate limiter's key function.
     request.state.principal = principal
     return principal
+
+
+def require_admin(p: Principal = Depends(current_principal)) -> Principal:
+    """Endpoint-level RBAC for operational routes (e.g. cost rollups)."""
+    if "admin" not in p.groups:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "admin access required")
+    return p

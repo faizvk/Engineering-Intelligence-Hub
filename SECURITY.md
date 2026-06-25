@@ -47,6 +47,13 @@ Every query fans out to Haiku + Voyage embed + Voyage rerank + Sonnet/Opus.
 and enforces a daily USD cap (`DAILY_SPEND_CAP_USD`) read from the cost ledger
 before any expensive work runs.
 
+## 6. Endpoint RBAC & user isolation
+
+Operational routes (`/admin/costs`) require the `admin` group (`require_admin`),
+not just authentication. User-initiated jobs are attributed and isolated:
+`/ingest/{id}` only returns a job to its owner, and feedback rows record the
+submitting user.
+
 ## Production checklist
 
 - [x] API authentication (JWT)            - [x] Row-level ACL on every query

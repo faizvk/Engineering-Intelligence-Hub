@@ -48,7 +48,10 @@ _STATEMENTS = [
     "CREATE INDEX IF NOT EXISTS code_acl_gin ON code_chunks USING gin (acl)",
     "CREATE INDEX IF NOT EXISTS prose_meta_gin ON prose_chunks USING gin (metadata)",
     "CREATE INDEX IF NOT EXISTS code_meta_gin ON code_chunks USING gin (metadata)",
+    "CREATE INDEX IF NOT EXISTS prose_doctype_idx ON prose_chunks (doc_type)",
     "CREATE INDEX IF NOT EXISTS prose_created_idx ON prose_chunks (created_at)",
+    "CREATE INDEX IF NOT EXISTS prose_sha_idx ON prose_chunks (content_sha256)",
+    "CREATE INDEX IF NOT EXISTS code_sha_idx ON code_chunks (content_sha256)",
     """CREATE TABLE IF NOT EXISTS embed_cache (
         content_sha256 TEXT NOT NULL, model TEXT NOT NULL,
         embedding vector(1024) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -58,14 +61,17 @@ _STATEMENTS = [
         model TEXT NOT NULL, input_tokens INT NOT NULL DEFAULT 0, output_tokens INT NOT NULL DEFAULT 0,
         cache_read_input_tokens INT NOT NULL DEFAULT 0, cache_creation_input_tokens INT NOT NULL DEFAULT 0,
         cost_usd NUMERIC(12,6) NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
+    "CREATE INDEX IF NOT EXISTS request_costs_created_idx ON request_costs (created_at)",
+    "CREATE INDEX IF NOT EXISTS request_costs_user_day_idx ON request_costs (user_id, created_at)",
     """CREATE TABLE IF NOT EXISTS feedback (
         id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, answer_id TEXT, run_id TEXT,
-        rating INT NOT NULL, reason TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
+        user_id TEXT, rating INT NOT NULL, reason TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
     """CREATE TABLE IF NOT EXISTS ingest_jobs (
         id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, source_uri TEXT NOT NULL,
-        doc_type TEXT NOT NULL, content TEXT NOT NULL, acl TEXT[] NOT NULL DEFAULT '{all}',
+        doc_type TEXT NOT NULL, content TEXT NOT NULL, user_id TEXT, acl TEXT[] NOT NULL DEFAULT '{all}',
         status TEXT NOT NULL DEFAULT 'queued', error TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(), processed_at TIMESTAMPTZ)""",
+    "CREATE INDEX IF NOT EXISTS ingest_jobs_status_idx ON ingest_jobs (status)",
 ]
 
 

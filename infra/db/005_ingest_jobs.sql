@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS ingest_jobs (
     source_uri   TEXT         NOT NULL,
     doc_type     TEXT         NOT NULL,          -- 'doc' | 'code' | 'incident' | 'diagram'
     content      TEXT         NOT NULL,
+    user_id      TEXT,                           -- requester (per-user isolation)
     acl          TEXT[]       NOT NULL DEFAULT '{all}',
     status       TEXT         NOT NULL DEFAULT 'queued',  -- queued|processing|done|error
     error        TEXT,

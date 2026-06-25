@@ -30,10 +30,16 @@ async def feedback(
 ) -> dict:
     await db.execute(
         text(
-            """INSERT INTO feedback (answer_id, run_id, rating, reason)
-               VALUES (:a, :r, :rating, :reason)"""
+            """INSERT INTO feedback (answer_id, run_id, user_id, rating, reason)
+               VALUES (:a, :r, :uid, :rating, :reason)"""
         ),
-        {"a": req.answer_id, "r": req.run_id, "rating": req.rating, "reason": req.reason},
+        {
+            "a": req.answer_id,
+            "r": req.run_id,
+            "uid": p.user_id,
+            "rating": req.rating,
+            "reason": req.reason,
+        },
     )
     await db.commit()
     return {"status": "recorded"}

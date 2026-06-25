@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS feedback (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     answer_id   TEXT,
     run_id      TEXT,                       -- LangSmith run id, to attach feedback to a trace
+    user_id     TEXT,                       -- who gave the feedback (audit trail)
     rating      INT          NOT NULL,      -- +1 / -1
     reason      TEXT,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()

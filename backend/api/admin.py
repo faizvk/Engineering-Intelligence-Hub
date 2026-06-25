@@ -7,7 +7,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
-from backend.security.auth import current_principal
+from backend.security.auth import require_admin
 from backend.security.principal import Principal
 from core.db import get_db
 
@@ -15,7 +15,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/costs")
-async def costs(db=Depends(get_db), p: Principal = Depends(current_principal)) -> dict:
+async def costs(db=Depends(get_db), p: Principal = Depends(require_admin)) -> dict:
+    # Org-wide rollup is the point of an admin view; the require_admin gate (not a
+    # per-user filter) is what protects it.
     today = (
         await db.execute(
             text(

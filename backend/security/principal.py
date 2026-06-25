@@ -15,9 +15,10 @@ class Principal(BaseModel):
     groups: list[str]  # e.g. ["eng", "payments", "oncall"]
 
 
-# When auth is disabled (demo), every request is this anonymous principal.
+# When auth is disabled (demo), every request is this anonymous principal. The
+# single demo user is effectively the admin, so it carries the admin group too.
 def default_principal() -> Principal:
-    return Principal(user_id="anonymous", groups=["all"])
+    return Principal(user_id="anonymous", groups=["all", "admin"])
 
 
 def principal_from_claims(claims: dict) -> Principal:
