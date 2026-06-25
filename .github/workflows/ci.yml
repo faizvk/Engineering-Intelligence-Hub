@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy core backend ingestion evals || true  # advisory, non-blocking
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: eih
+          POSTGRES_PASSWORD: eih
+          POSTGRES_DB: eih
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U eih -d eih" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run pytest -q
+        env:
+          DATABASE_URL: postgresql+psycopg://eih:eih@localhost:5432/eih
+          DATABASE_URL_RAW: postgresql://eih:eih@localhost:5432/eih
+
+  eval-gate:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - name: RAG quality gate (skips if API keys are absent)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          DATABASE_URL: ${{ secrets.EVAL_DATABASE_URL }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] || [ -z "$VOYAGE_API_KEY" ]; then
+            echo "No API keys configured — skipping the LLM eval gate."
+            exit 0
+          fi
+          uv run python -m evals.run --suite ci \
+            --fail-under-faithfulness 0.85 --fail-under-recall 0.80
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [eval-gate]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      # Validate the image builds. Add push + deploy (ghcr/Fly) with platform secrets.
+      - run: docker build -f infra/backend.Dockerfile -t eih-api:${{ github.sha }} .

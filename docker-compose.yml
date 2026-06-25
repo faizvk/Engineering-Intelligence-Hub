@@ -1,6 +1,5 @@
-# Local dev + single-box demo. The backend service is added in the deploy phase
-# (alongside infra/backend.Dockerfile). Until then, `docker compose up -d` brings up
-# a ready pgvector-enabled Postgres with the schema bootstrapped on first boot.
+# Local dev + single-box demo: the FastAPI backend wired to a pgvector-enabled
+# Postgres, gated on the DB healthcheck. `docker compose up -d --build`.
 services:
   db:
     image: pgvector/pgvector:pg17     # Postgres 17 + pgvector preinstalled
@@ -20,6 +19,22 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/backend.Dockerfile
+    container_name: eih-backend
+    env_file: .env
+    environment:
+      # Inside the compose network the DB host is the service name, not localhost.
+      DATABASE_URL: postgresql+psycopg://eih:eih@db:5432/eih
+      DATABASE_URL_RAW: postgresql://eih:eih@db:5432/eih
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy  # wait for the healthcheck, not just start
 
 volumes:
   pgdata:

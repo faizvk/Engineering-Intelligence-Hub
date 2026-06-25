@@ -8,7 +8,6 @@ venv/
 .git/
 .github/
 tests/
-evals/
 frontend/
 data/
 .cache/
