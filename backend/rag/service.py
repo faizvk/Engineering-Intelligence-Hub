@@ -14,9 +14,22 @@ import threading
 from dataclasses import dataclass, field
 from typing import AsyncIterator
 
+import anthropic
+
 from backend.llm.answer import answer
+from backend.llm.client import DEFAULT_MODEL
 from backend.rag.pipeline import docs_to_chunks, retrieve
 from core.schemas import Citation, Usage
+
+
+def _answer_with_fallback(question: str, chunks, on_token=None):
+    """Generate, degrading Opus->Sonnet on a 529 OverloadedError instead of failing."""
+    try:
+        return answer(question, chunks, on_token=on_token)
+    except anthropic.APIStatusError as e:
+        if getattr(e, "status_code", None) == 529:
+            return answer(question, chunks, model=DEFAULT_MODEL, on_token=on_token)
+        raise
 
 
 @dataclass
@@ -35,7 +48,7 @@ def answer_query(
 ) -> QueryResult:
     docs = retrieve(question, top_k=top_k, acl_groups=acl_groups)
     chunks = docs_to_chunks(docs)
-    res = answer(question, chunks)
+    res = _answer_with_fallback(question, chunks)
     return QueryResult(
         answer=res.text,
         citations=res.citations,
@@ -60,7 +73,9 @@ async def stream_query(
 
     def run() -> None:
         try:
-            res = answer(question, chunks, on_token=lambda t: q.put(("token", {"text": t})))
+            res = _answer_with_fallback(
+                question, chunks, on_token=lambda t: q.put(("token", {"text": t}))
+            )
             q.put(("sources", {"citations": [c.model_dump() for c in res.citations]}))
             if res.usage is not None:
                 q.put(("usage", res.usage.model_dump()))

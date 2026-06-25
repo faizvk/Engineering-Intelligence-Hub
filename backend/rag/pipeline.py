@@ -44,16 +44,14 @@ def retrieve(
     else:
         strategy = "none"
 
-    base = reranking_retriever(
-        hybrid_retriever(
-            text_embeddings(),
-            table=table,
-            k=FETCH_K,
-            search_filter=search_filter or {},
-            acl_groups=acl_groups or ["all"],
-        ),
-        top_k=top_k,
+    hybrid = hybrid_retriever(
+        text_embeddings(),
+        table=table,
+        k=FETCH_K,
+        search_filter=search_filter or {},
+        acl_groups=acl_groups or ["all"],
     )
+    base = reranking_retriever(hybrid, top_k=top_k)
 
     if strategy == "multiquery":
         retriever = multiquery_retriever(base)
@@ -64,7 +62,12 @@ def retrieve(
     else:  # "none" — straight hybrid + rerank
         retriever = base
 
-    return list(retriever.invoke(question))[:top_k]
+    try:
+        return list(retriever.invoke(question))[:top_k]
+    except Exception:
+        # Voyage rerank (or a transform LLM) unavailable — degrade to hybrid-only
+        # (dense + BM25, no rerank) rather than 500. Honest, still useful.
+        return list(hybrid.invoke(question))[:top_k]
 
 
 def docs_to_chunks(docs: list[Document]) -> list[RetrievedChunk]:
