@@ -14,6 +14,8 @@ from pydantic import BaseModel
 
 from backend.cost.meter import record_usage
 from backend.rag.service import answer_query, stream_query
+from backend.security.auth import current_principal
+from backend.security.principal import Principal
 from core.db import get_db
 from core.schemas import Citation, Usage
 
@@ -32,8 +34,13 @@ class QueryResponse(BaseModel):
 
 
 @router.post("", response_model=QueryResponse)
-async def query(req: QueryRequest, db=Depends(get_db)) -> QueryResponse:
-    result = answer_query(req.question)
+async def query(
+    req: QueryRequest,
+    db=Depends(get_db),
+    p: Principal = Depends(current_principal),
+) -> QueryResponse:
+    # acl_groups come from the authenticated principal, NEVER from the request body.
+    result = answer_query(req.question, acl_groups=p.groups)
     await record_usage(db, req.conversation_id, result.usage)  # sets usage.cost_usd
     return QueryResponse(
         answer=result.answer, citations=result.citations, usage=result.usage
@@ -41,10 +48,14 @@ async def query(req: QueryRequest, db=Depends(get_db)) -> QueryResponse:
 
 
 @router.post("/stream")
-async def query_stream(req: QueryRequest, db=Depends(get_db)) -> StreamingResponse:
+async def query_stream(
+    req: QueryRequest,
+    db=Depends(get_db),
+    p: Principal = Depends(current_principal),
+) -> StreamingResponse:
     async def event_source():
         captured_usage: dict | None = None
-        async for event, data in stream_query(req.question):
+        async for event, data in stream_query(req.question, acl_groups=p.groups):
             if event == "usage":
                 captured_usage = data
             yield _sse(event, data)

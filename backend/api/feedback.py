@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
 
+from backend.security.auth import current_principal
+from backend.security.principal import Principal
 from core.db import get_db
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
@@ -21,7 +23,11 @@ class FeedbackRequest(BaseModel):
 
 
 @router.post("", status_code=201)
-async def feedback(req: FeedbackRequest, db=Depends(get_db)) -> dict:
+async def feedback(
+    req: FeedbackRequest,
+    db=Depends(get_db),
+    p: Principal = Depends(current_principal),
+) -> dict:
     await db.execute(
         text(
             """INSERT INTO feedback (answer_id, run_id, rating, reason)
