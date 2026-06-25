@@ -41,10 +41,19 @@ async def query(req: QueryRequest, db=Depends(get_db)) -> QueryResponse:
 
 
 @router.post("/stream")
-async def query_stream(req: QueryRequest) -> StreamingResponse:
+async def query_stream(req: QueryRequest, db=Depends(get_db)) -> StreamingResponse:
     async def event_source():
+        captured_usage: dict | None = None
         async for event, data in stream_query(req.question):
+            if event == "usage":
+                captured_usage = data
             yield _sse(event, data)
+        # Persist usage the same way the non-streaming path does (consistent metrics).
+        if captured_usage:
+            try:
+                await record_usage(db, req.conversation_id, Usage(**captured_usage))
+            except Exception:
+                pass
         yield _sse("done", {})
 
     return StreamingResponse(

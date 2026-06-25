@@ -16,10 +16,9 @@ ENV PATH="/opt/venv/bin:$PATH" \
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
-# Ship the shared kernel + the API service (and the dependency-light tracing helper).
+# Ship only the shared kernel + the API service (tracing now lives in core/).
 COPY core ./core
 COPY backend ./backend
-COPY evals ./evals
 USER appuser
 EXPOSE 8000
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

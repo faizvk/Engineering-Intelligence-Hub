@@ -12,8 +12,8 @@ from __future__ import annotations
 import argparse
 import sys
 
+from core.tracing import configure_langsmith
 from evals.run_retrieval import main as retrieval_main
-from evals.tracing import configure_langsmith
 
 
 def main() -> int:

@@ -1,6 +1,7 @@
-"""LangSmith tracing: with LCEL/LangGraph, tracing is essentially free — set the
-env vars and every chain run, retrieval, rerank, token count, latency, and cost
-is captured. We translate the typed settings into the env vars LangChain reads.
+"""LangSmith tracing setup — a deployment concern shared by the API and the eval
+harness, so it lives in the shared kernel (not in evals/, which backend must not
+import). Translates typed settings into the env vars LangChain reads; with
+LCEL/LangGraph, that's all tracing needs.
 """
 
 from __future__ import annotations
