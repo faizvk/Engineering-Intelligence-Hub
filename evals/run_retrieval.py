@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import statistics
+from collections import defaultdict
 from pathlib import Path
 
 from evals.retrieval_metrics import (
@@ -39,14 +40,20 @@ def _retrieved_ids(question: str, k: int) -> list[str]:
 def main() -> dict:
     rows = [json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()]
     results = {"hit_rate": [], "recall@5": [], "precision@5": [], "mrr": []}
+    by_category: dict[str, list[float]] = defaultdict(list)
     for row in rows:
         ids = _retrieved_ids(row["question"], K)
         expected = set(row["expected_source_ids"])
+        rr = reciprocal_rank(ids, expected)
         results["hit_rate"].append(hit_rate(ids, expected))
         results["recall@5"].append(recall_at_k(ids, expected, K))
         results["precision@5"].append(precision_at_k(ids, expected, K))
-        results["mrr"].append(reciprocal_rank(ids, expected))
+        results["mrr"].append(rr)
+        by_category[row.get("category", "uncategorized")].append(rr)
     summary = {m: round(statistics.mean(v), 4) for m, v in results.items()}
+    summary["mrr_by_category"] = {
+        c: round(statistics.mean(v), 4) for c, v in sorted(by_category.items())
+    }
     print(json.dumps(summary, indent=2))
     return summary
 
