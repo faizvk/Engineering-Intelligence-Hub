@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 
 from ingestion.chunking import split_documents
 from ingestion.embed import embed_and_upsert
-from ingestion.loaders import docs
+from ingestion.loaders import code, docs
 
 DATA = Path("data")
 
@@ -26,7 +26,10 @@ def load_sources() -> list[Document]:
     handbook = DATA / "handbook"
     if handbook.exists():
         raw += docs.load_markdown_tree(str(handbook), source="handbook")
-    # Code, incidents, and diagrams loaders are wired here as later phases add them.
+    repo = DATA / "repo"
+    if repo.exists():
+        raw += code.load_local_code(str(repo), repo="platform")
+    # Incidents and diagrams loaders are wired here as later phases add them.
     return raw
 
 
