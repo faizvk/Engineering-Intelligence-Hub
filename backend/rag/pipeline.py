@@ -11,8 +11,8 @@ from __future__ import annotations
 from langchain_core.documents import Document
 
 from backend.rag.embeddings import text_embeddings
+from backend.rag.hybrid import hybrid_retriever
 from backend.rag.rerank import reranking_retriever
-from backend.rag.vectorstore import dense_retriever
 from core.schemas import DocType, RetrievedChunk
 
 FETCH_K = 50  # over-fetch; the reranker trims to top_k
@@ -26,9 +26,9 @@ def retrieve(
     search_filter: dict | None = None,
     acl_groups: list[str] | None = None,
 ) -> list[Document]:
-    # Recall-then-precision: dense over-fetch (k=50) -> cross-encoder rerank to top_k.
-    # Later phases swap the base for the hybrid (dense+BM25) retriever in place.
-    base = dense_retriever(
+    # Recall-then-precision: hybrid (dense + BM25, RRF-fused) over-fetch (k=50)
+    # -> cross-encoder rerank to top_k. Query-intent routing is layered on next.
+    base = hybrid_retriever(
         text_embeddings(),
         table=table,
         k=FETCH_K,
