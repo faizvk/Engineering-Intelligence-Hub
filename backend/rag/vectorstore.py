@@ -20,6 +20,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
 
+from backend.security.acl import ACL_PREDICATE, acl_param
 from core.db import raw_connect, vector_literal
 from core.schemas import DocType
 
@@ -46,10 +47,10 @@ class PgVectorDenseRetriever(BaseRetriever):
         qvec = self.embeddings.embed_query(query)
         params: dict[str, Any] = {
             "qv": vector_literal(qvec),
-            "acl": list(self.acl_groups),
+            "acl": acl_param(self.acl_groups),
             "k": self.k,
         }
-        where = ["acl && %(acl)s::text[]"]  # ACL is non-negotiable
+        where = [ACL_PREDICATE]  # ACL is non-negotiable, derived from the principal
         _compile_filter(self.search_filter, where, params)
         sql = f"""
             SELECT id, content, doc_type, source_uri, chunk_index, repo, title, metadata,

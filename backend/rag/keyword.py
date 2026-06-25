@@ -16,6 +16,7 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 
 from backend.rag.vectorstore import _compile_filter
+from backend.security.acl import ACL_PREDICATE, acl_param
 from core.db import raw_connect
 from core.schemas import DocType
 
@@ -33,10 +34,10 @@ class PostgresFTSRetriever(BaseRetriever):
     ) -> list[Document]:
         if self.table not in _TABLES:
             raise ValueError(f"unknown table {self.table!r}")
-        params: dict[str, Any] = {"q": query, "acl": list(self.acl_groups), "k": self.k}
+        params: dict[str, Any] = {"q": query, "acl": acl_param(self.acl_groups), "k": self.k}
         where = [
             "content_tsv @@ websearch_to_tsquery('english', %(q)s)",
-            "acl && %(acl)s::text[]",
+            ACL_PREDICATE,  # ACL is non-negotiable on the lexical path too
         ]
         _compile_filter(self.search_filter, where, params)
         sql = f"""
