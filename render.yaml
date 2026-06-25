@@ -1,0 +1,26 @@
+# Render blueprint: containerized API + managed Postgres (pgvector-capable).
+services:
+  - type: web
+    name: eih-api
+    runtime: docker
+    dockerfilePath: ./infra/backend.Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eih-postgres
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: CORS_ALLOW_ORIGINS
+        sync: false
+
+databases:
+  - name: eih-postgres
+    plan: free
+    # Render Postgres supports `CREATE EXTENSION vector;` — run it via the
+    # baseline migration (alembic upgrade head) on first deploy.
