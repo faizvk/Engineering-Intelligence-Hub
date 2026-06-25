@@ -23,6 +23,9 @@ class AnswerResult:
     citations: list[Citation] = field(default_factory=list)
     model: str = ""
     usage: Usage | None = None
+    stop_reason: str | None = None
+    truncated: bool = False
+    refused: bool = False
 
 
 def thinking_config(model: str) -> dict:
@@ -84,6 +87,16 @@ def answer(
             if on_token:
                 on_token(text)
         final = stream.get_final_message()
+
+    # Non-end_turn stop reasons are real outcomes, handled explicitly.
+    result.stop_reason = getattr(final, "stop_reason", None)
+    if result.stop_reason == "refusal":
+        result.refused = True
+        if not result.text:
+            result.text = "The assistant declined to answer this request."
+    elif result.stop_reason == "max_tokens":
+        result.truncated = True
+        result.text += "\n\n[answer truncated — exceeded the output budget]"
 
     for block in final.content:
         if block.type == "text":
