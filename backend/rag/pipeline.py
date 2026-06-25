@@ -35,11 +35,13 @@ def retrieve(
     search_filter: dict | None = None,
     acl_groups: list[str] | None = None,
     route: bool = True,
+    rerank: bool = True,
 ) -> list[Document]:
     """route -> filter -> choose transform -> hybrid -> rerank.
 
     Set route=False (or pass an explicit search_filter) to skip the Haiku
     intent/strategy classification — useful for evals and exact-identifier paths.
+    Set rerank=False to A/B the cross-encoder against hybrid-only.
     """
     if route and search_filter is None:
         search_filter = build_filter(question)
@@ -54,6 +56,8 @@ def retrieve(
         search_filter=search_filter or {},
         acl_groups=acl_groups or ["all"],
     )
+    if not rerank:  # A/B baseline: hybrid (dense + BM25) only, no cross-encoder
+        return above_floor(list(hybrid.invoke(question))[:top_k])
     base = reranking_retriever(hybrid, top_k=top_k)
 
     if strategy == "multiquery":
