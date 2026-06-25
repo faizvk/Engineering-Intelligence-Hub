@@ -19,6 +19,9 @@ logs:        ## Tail container logs
 db-shell:    ## psql into the running database
 	docker compose exec db psql -U eih -d eih
 
+migrate:     ## Apply DB migrations (managed Postgres path; idempotent)
+	uv run alembic upgrade head || alembic upgrade head
+
 install:     ## Sync deps into .venv from pyproject (uv) or pip fallback
 	uv sync --all-extras || pip install -e ".[dev,eval]"
 
