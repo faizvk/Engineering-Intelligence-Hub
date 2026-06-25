@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     langsmith_api_key: SecretStr | None = Field(None, alias="LANGSMITH_API_KEY")
     langsmith_project: str = Field("eih-dev", alias="LANGSMITH_PROJECT")
 
+    # --- Auth & abuse prevention ---
+    # auth_enabled=False keeps the demo open (anonymous principal in group "all").
+    # Turn it on in production and provide the IdP's RS256 public key.
+    auth_enabled: bool = Field(False, alias="AUTH_ENABLED")
+    jwt_public_key: SecretStr | None = Field(None, alias="JWT_PUBLIC_KEY")
+    jwt_audience: str = Field("eih", alias="JWT_AUDIENCE")
+    rate_limit_per_minute: int = Field(20, alias="RATE_LIMIT_PER_MINUTE")
+    daily_spend_cap_usd: float = Field(5.0, alias="DAILY_SPEND_CAP_USD")
+
 
 @lru_cache
 def get_settings() -> Settings:
