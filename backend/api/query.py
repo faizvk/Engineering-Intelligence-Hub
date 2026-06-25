@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from backend.cost.meter import record_usage
 from backend.rag.service import answer_query, stream_query
+from core.db import get_db
 from core.schemas import Citation, Usage
 
 router = APIRouter(prefix="/query", tags=["query"])
@@ -30,8 +32,9 @@ class QueryResponse(BaseModel):
 
 
 @router.post("", response_model=QueryResponse)
-async def query(req: QueryRequest) -> QueryResponse:
+async def query(req: QueryRequest, db=Depends(get_db)) -> QueryResponse:
     result = answer_query(req.question)
+    await record_usage(db, req.conversation_id, result.usage)  # sets usage.cost_usd
     return QueryResponse(
         answer=result.answer, citations=result.citations, usage=result.usage
     )
