@@ -33,6 +33,25 @@ def _answer_with_fallback(question: str, chunks, on_token=None):
         raise
 
 
+def _resolve(conversation_id: str | None, question: str):
+    """For a follow-up, condense history + question into a standalone query so
+    retrieval isn't confused by pronouns. Returns (standalone_query, history_obj)."""
+    if not conversation_id:
+        return question, None
+    from backend.rag.chain import condense_q, get_history
+
+    history = get_history(conversation_id)
+    msgs = history.messages
+    standalone = condense_q.invoke({"history": msgs, "question": question}) if msgs else question
+    return standalone, history
+
+
+def _persist(history, question: str, answer_text: str) -> None:
+    if history is not None:
+        history.add_user_message(question)
+        history.add_ai_message(answer_text)
+
+
 @dataclass
 class QueryResult:
     answer: str
@@ -44,14 +63,18 @@ class QueryResult:
 def answer_query(
     question: str,
     *,
+    conversation_id: str | None = None,
     top_k: int = 8,
     acl_groups: list[str] | None = None,
 ) -> QueryResult:
-    docs = retrieve(question, top_k=top_k, acl_groups=acl_groups)
+    standalone, history = _resolve(conversation_id, question)
+    docs = retrieve(standalone, top_k=top_k, acl_groups=acl_groups)
     chunks = docs_to_chunks(docs)
     if not chunks:  # no confident context — don't call Claude, don't hallucinate
+        _persist(history, question, NO_ANSWER)
         return QueryResult(answer=NO_ANSWER)
-    res = _answer_with_fallback(question, chunks)
+    res = _answer_with_fallback(standalone, chunks)
+    _persist(history, question, res.text)
     return QueryResult(
         answer=res.text,
         citations=res.citations,
@@ -66,13 +89,16 @@ _DONE = object()
 async def stream_query(
     question: str,
     *,
+    conversation_id: str | None = None,
     top_k: int = 8,
     acl_groups: list[str] | None = None,
 ) -> AsyncIterator[tuple[str, dict]]:
     """Yield (event, data) pairs: many 'token', then 'sources', then 'usage'."""
-    docs = retrieve(question, top_k=top_k, acl_groups=acl_groups)
+    standalone, history = _resolve(conversation_id, question)
+    docs = retrieve(standalone, top_k=top_k, acl_groups=acl_groups)
     chunks = docs_to_chunks(docs)
     if not chunks:  # honest no-answer, no Claude call
+        _persist(history, question, NO_ANSWER)
         yield ("token", {"text": NO_ANSWER})
         return
     q: queue.Queue = queue.Queue()
@@ -80,8 +106,9 @@ async def stream_query(
     def run() -> None:
         try:
             res = _answer_with_fallback(
-                question, chunks, on_token=lambda t: q.put(("token", {"text": t}))
+                standalone, chunks, on_token=lambda t: q.put(("token", {"text": t}))
             )
+            _persist(history, question, res.text)
             q.put(("sources", {"citations": [c.model_dump() for c in res.citations]}))
             if res.usage is not None:
                 q.put(("usage", res.usage.model_dump()))

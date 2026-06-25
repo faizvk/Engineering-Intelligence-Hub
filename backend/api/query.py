@@ -44,7 +44,9 @@ async def query(
 ) -> QueryResponse:
     await enforce_spend_cap(db, p.user_id)
     # acl_groups come from the authenticated principal, NEVER from the request body.
-    result = answer_query(req.question, acl_groups=p.groups)
+    result = answer_query(
+        req.question, conversation_id=req.conversation_id, acl_groups=p.groups
+    )
     await record_usage(db, req.conversation_id, result.usage, user_id=p.user_id)
     return QueryResponse(
         answer=result.answer, citations=result.citations, usage=result.usage
@@ -63,7 +65,9 @@ async def query_stream(
 
     async def event_source():
         captured_usage: dict | None = None
-        async for event, data in stream_query(req.question, acl_groups=p.groups):
+        async for event, data in stream_query(
+            req.question, conversation_id=req.conversation_id, acl_groups=p.groups
+        ):
             if event == "usage":
                 captured_usage = data
             yield _sse(event, data)

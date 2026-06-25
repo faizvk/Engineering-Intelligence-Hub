@@ -114,13 +114,23 @@ conversational_chain = (
 )
 
 
+_HISTORY_READY = False
+
+
 def get_history(session_id: str):
-    """Postgres-backed transcript per session. Requires the chat_history table
-    (created by the ops migration). Swap for Redis later if latency demands."""
+    """Postgres-backed transcript per session. Auto-creates the chat_history table
+    on first use (langchain-postgres owns its schema). Swap for Redis if latency demands."""
+    global _HISTORY_READY
     import psycopg
     from langchain_postgres import PostgresChatMessageHistory
 
     conn = psycopg.connect(get_settings().database_url_raw)
+    if not _HISTORY_READY:
+        try:
+            PostgresChatMessageHistory.create_tables(conn, "chat_history")
+        except Exception:
+            pass  # already exists
+        _HISTORY_READY = True
     return PostgresChatMessageHistory("chat_history", session_id, sync_connection=conn)
 
 
