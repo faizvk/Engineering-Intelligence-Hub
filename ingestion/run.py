@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 
 from ingestion.chunking import split_documents
 from ingestion.embed import embed_and_upsert
-from ingestion.loaders import code, docs, incidents
+from ingestion.loaders import code, diagrams, docs, incidents
 
 DATA = Path("data")
 
@@ -32,7 +32,14 @@ def load_sources() -> list[Document]:
     jira = DATA / "incidents" / "jira_export.json"
     if jira.exists():
         raw += incidents.load_jira_incidents(str(jira))
-    # The diagrams loader is wired here once the vision phase lands.
+    diagram_dir = DATA / "diagrams"
+    images = [
+        str(p)
+        for ext in ("*.png", "*.jpg", "*.jpeg")
+        for p in diagram_dir.glob(ext)
+    ]
+    if images:
+        raw += diagrams.load_diagrams(images, source="diagrams")
     return raw
 
 
