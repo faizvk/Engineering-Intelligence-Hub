@@ -1,0 +1,25 @@
+# Local dev + single-box demo. The backend service is added in the deploy phase
+# (alongside infra/backend.Dockerfile). Until then, `docker compose up -d` brings up
+# a ready pgvector-enabled Postgres with the schema bootstrapped on first boot.
+services:
+  db:
+    image: pgvector/pgvector:pg17     # Postgres 17 + pgvector preinstalled
+    container_name: eih-db
+    environment:
+      POSTGRES_USER: eih
+      POSTGRES_PASSWORD: eih
+      POSTGRES_DB: eih
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # *.sql here runs once, in filename order, on an empty data dir:
+      - ./infra/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eih -d eih"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
