@@ -15,10 +15,9 @@ htmlcov/
 .env.*
 !.env.example
 
-# --- Data & caches (never commit the corpus or clones) ---
+# --- Caches & clones (never commit these). The small synthetic demo corpus
+#     under data/ IS committed so the repo is runnable out of the box. ---
 .cache/
-data/
-!data/.gitkeep
 pgdata/
 
 # --- Node / Next.js ---
