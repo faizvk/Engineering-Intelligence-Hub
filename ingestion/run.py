@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 
 from ingestion.chunking import split_documents
 from ingestion.embed import embed_and_upsert
-from ingestion.loaders import code, diagrams, docs, incidents
+from ingestion.loaders import code, diagrams, docs, incidents, pdf
 
 DATA = Path("data")
 
@@ -40,6 +40,9 @@ def load_sources() -> list[Document]:
     ]
     if images:
         raw += diagrams.load_diagrams(images, source="diagrams")
+    pdfs = [str(p) for p in DATA.rglob("*.pdf")]
+    if pdfs:
+        raw += pdf.load_pdfs(pdfs)
     return raw
 
 
