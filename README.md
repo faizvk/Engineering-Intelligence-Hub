@@ -93,6 +93,24 @@ cd frontend && npm install && npm run dev   # flat-dark chat UI on :3000
 A small synthetic corpus (handbook docs, a sample repo, two postmortems) ships
 under `data/` so the system ingests and demos out of the box.
 
+## Production hardening
+
+Runnable against real private data, not just a demo:
+
+- **Auth + row-level ACLs** — JWT principal; `acl && groups` injected into every
+  retrieval query in SQL (default deny); `/admin/costs` gated by an `admin` role;
+  ingest jobs/feedback attributed and isolated per user.
+- **Secret/PII redaction** at ingestion (emails, provider keys, AWS IDs, JWTs,
+  private keys) with a pluggable NER hook.
+- **Robustness** — SDK retries/timeouts, `stop_reason` handling (refusal /
+  truncation), Opus→Sonnet degradation on 529, hybrid-only fallback if rerank is
+  down, and an honest no-answer when retrieval is empty.
+- **Freshness** — incremental, content-hash-aware re-indexing with orphan
+  cleanup; a cross-source embedding cache; `/ingest` job queue + worker; async +
+  Batches contextualization.
+- **Ops** — per-user rate limits + daily spend cap; structured logs with a
+  `request_id`; Alembic migrations; LangSmith tracing.
+
 ## Evaluation
 
 Retrieval and generation are measured as separate stages, because they fail
@@ -108,20 +126,27 @@ independently:
 ## Project structure
 
 ```
-core/        # shared kernel: settings, db, schemas, constants
-ingestion/   # offline pipeline: loaders, chunking, embed, contextualize, redact, run
+core/        # shared kernel: settings, db, schemas, constants, logging, tracing
+ingestion/   # offline pipeline: loaders, chunking, embed(+cache), contextualize(+async/batch),
+             #   redact, incremental reindex, jobs worker, run CLI
 backend/
-  api/       # FastAPI routers: health, query (+SSE), feedback
-  rag/       # retrieval (dense/keyword/hybrid/rerank/transform/routing), LCEL chain, graph/ (CRAG)
+  api/       # FastAPI routers: health, query (+SSE), ingest, feedback, admin
+  rag/       # retrieval (dense/keyword/hybrid/rerank/transform/routing), scoring, LCEL chain, graph/ (CRAG)
   llm/       # Claude client, tier router, cached prompts, citation blocks, answer()
-  cost/      # per-request cost meter
-evals/       # golden set, retrieval metrics, RAGAS, CI gate, LangSmith config
-infra/db/    # canonical pgvector schema + ops tables
-frontend/    # Next.js flat-dark chat UI
+  cost/      # per-request cost meter + spend cap
+  security/  # JWT auth, principal, row-level ACL, rate limiting
+evals/       # golden set, retrieval metrics, RAGAS, grounding, A/B, CI gate
+infra/db/    # canonical pgvector schema + ops tables;  migrations/ (Alembic)
+frontend/    # Next.js flat-dark chat UI (citations, cost, feedback)
 tests/       # unit + integration
 ```
 
-See [`ROADMAP.md`](ROADMAP.md) for the phased build and what's next.
+## Docs
+
+[`ARCHITECTURE.md`](ARCHITECTURE.md) · [`SECURITY.md`](SECURITY.md) ·
+[`WRITEUP.md`](WRITEUP.md) · [`ROADMAP.md`](ROADMAP.md) ·
+[`infra/DEPLOY.md`](infra/DEPLOY.md) · [`evals/EXPERIMENTS.md`](evals/EXPERIMENTS.md) ·
+[`CHANGELOG.md`](CHANGELOG.md)
 
 ## License
 
