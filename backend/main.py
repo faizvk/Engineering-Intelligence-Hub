@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from backend.api import health
+from backend.api import health, query
 from core.db import dispose_engine
 
 
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(health.router)
+    app.include_router(query.router)
     return app
 
 
