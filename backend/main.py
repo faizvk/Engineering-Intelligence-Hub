@@ -22,6 +22,9 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    from evals.tracing import configure_langsmith
+
+    configure_langsmith()  # no-op unless LANGSMITH_TRACING is set
     app = FastAPI(
         title="Engineering Intelligence Hub",
         version="0.1.0",
