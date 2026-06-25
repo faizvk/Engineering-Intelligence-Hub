@@ -9,6 +9,7 @@ which retrieval strategy is active.
 from __future__ import annotations
 
 from langchain_core.documents import Document
+from langsmith import traceable
 
 from backend.rag.embeddings import text_embeddings
 from backend.rag.hybrid import hybrid_retriever
@@ -25,6 +26,7 @@ from core.schemas import DocType, RetrievedChunk
 FETCH_K = 50  # over-fetch; the reranker trims to top_k
 
 
+@traceable(run_type="retriever", name="retrieve")
 def retrieve(
     question: str,
     *,

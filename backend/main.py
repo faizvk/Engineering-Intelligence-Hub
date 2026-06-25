@@ -8,9 +8,10 @@ routers (query, ingest, feedback) are wired in as later phases land them.
 from __future__ import annotations
 
 import os
+import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -28,8 +29,10 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    from core.logging import configure_logging
     from core.tracing import configure_langsmith
 
+    configure_logging()
     configure_langsmith()  # no-op unless LANGSMITH_TRACING is set
     app = FastAPI(
         title="Engineering Intelligence Hub",
@@ -40,6 +43,15 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
+
+    @app.middleware("http")
+    async def request_id(request: Request, call_next):
+        rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        request.state.request_id = rid
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        return response
+
     # CORS: allow exactly the frontend origin(s), configurable per environment.
     origins = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000").split(",")
     app.add_middleware(
