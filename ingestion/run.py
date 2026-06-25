@@ -43,7 +43,7 @@ def load_sources() -> list[Document]:
     return raw
 
 
-def ingest(contextualize: bool = False) -> int:
+def ingest(contextualize: bool = False, concurrent: bool = False) -> int:
     raw = load_sources()
     if not raw:
         print("No sources found under ./data — nothing to ingest.")
@@ -54,9 +54,14 @@ def ingest(contextualize: bool = False) -> int:
 
     chunks = split_documents(raw)
     if contextualize:
-        from ingestion.contextualize import contextualize_all
+        if concurrent:
+            from ingestion.contextualize_async import contextualize_all_concurrent
 
-        chunks = contextualize_all(parent_text, chunks)
+            chunks = contextualize_all_concurrent(parent_text, chunks)
+        else:
+            from ingestion.contextualize import contextualize_all
+
+            chunks = contextualize_all(parent_text, chunks)
 
     n = embed_and_upsert(chunks)
     print(f"Ingested {len(raw)} source docs -> {len(chunks)} chunks -> upserted {n}.")
@@ -70,8 +75,13 @@ def main() -> None:
         action="store_true",
         help="Prepend Anthropic Contextual Retrieval blurbs before embedding (costs Haiku tokens).",
     )
+    ap.add_argument(
+        "--concurrent",
+        action="store_true",
+        help="Contextualize concurrently (bounded asyncio) instead of serially.",
+    )
     args = ap.parse_args()
-    ingest(contextualize=args.contextualize)
+    ingest(contextualize=args.contextualize, concurrent=args.concurrent)
 
 
 if __name__ == "__main__":
