@@ -11,10 +11,11 @@ from __future__ import annotations
 from langchain_core.documents import Document
 
 from backend.rag.embeddings import text_embeddings
+from backend.rag.rerank import reranking_retriever
 from backend.rag.vectorstore import dense_retriever
 from core.schemas import DocType, RetrievedChunk
 
-FETCH_K = 50  # over-fetch; the reranker (added later) trims to top_k
+FETCH_K = 50  # over-fetch; the reranker trims to top_k
 
 
 def retrieve(
@@ -25,14 +26,17 @@ def retrieve(
     search_filter: dict | None = None,
     acl_groups: list[str] | None = None,
 ) -> list[Document]:
-    retriever = dense_retriever(
+    # Recall-then-precision: dense over-fetch (k=50) -> cross-encoder rerank to top_k.
+    # Later phases swap the base for the hybrid (dense+BM25) retriever in place.
+    base = dense_retriever(
         text_embeddings(),
         table=table,
         k=FETCH_K,
         search_filter=search_filter,
         acl_groups=acl_groups or ["all"],
     )
-    return retriever.invoke(question)[:top_k]
+    retriever = reranking_retriever(base, top_k=top_k)
+    return list(retriever.invoke(question))
 
 
 def docs_to_chunks(docs: list[Document]) -> list[RetrievedChunk]:
