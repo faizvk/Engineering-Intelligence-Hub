@@ -97,15 +97,17 @@ def _embed_into(table: str, chunks: list[Document], model: str) -> int:
     if not pending:
         return 0
 
-    vectors = embed_batch([c.page_content for c, _ in pending], model=model)
+    literals = _embed_cached(
+        [c.page_content for c, _ in pending], [s for _, s in pending], model
+    )
     with raw_connect() as conn, conn.cursor() as cur:
-        for (ch, sha), vec in zip(pending, vectors):
+        for (ch, sha), emb_literal in zip(pending, literals):
             m = ch.metadata
             cur.execute(
                 _UPSERT.format(table=table),
                 {
                     "content": ch.page_content,
-                    "embedding": vector_literal(vec),
+                    "embedding": emb_literal,
                     "doc_type": m.get("doc_type", DocType.DOC.value),
                     "source_uri": m.get("path", ""),
                     "chunk_index": m.get("chunk_index", 0),
@@ -119,6 +121,42 @@ def _embed_into(table: str, chunks: list[Document], model: str) -> int:
             )
         conn.commit()
     return len(pending)
+
+
+def _embed_cached(texts: list[str], shas: list[str], model: str) -> list[str]:
+    """Return pgvector text literals for each text, reusing embed_cache by sha.
+
+    Hits are fetched as text (already a valid ::vector literal); misses are
+    embedded once, cached, and returned in the same literal form — so the caller
+    binds them uniformly regardless of pgvector adapter registration.
+    """
+    literals: list[str | None] = [None] * len(texts)
+    with raw_connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT content_sha256, embedding::text FROM embed_cache "
+            "WHERE model = %s AND content_sha256 = ANY(%s)",
+            (model, shas),
+        )
+        cached = {h: lit for h, lit in cur.fetchall()}
+
+    miss_idx = [i for i, h in enumerate(shas) if h not in cached]
+    if miss_idx:
+        miss_vecs = embed_batch([texts[i] for i in miss_idx], model=model)
+        with raw_connect() as conn, conn.cursor() as cur:
+            for i, vec in zip(miss_idx, miss_vecs):
+                lit = vector_literal(vec)
+                literals[i] = lit
+                cur.execute(
+                    "INSERT INTO embed_cache (content_sha256, model, embedding) "
+                    "VALUES (%s, %s, %s::vector) ON CONFLICT DO NOTHING",
+                    (shas[i], model, lit),
+                )
+            conn.commit()
+
+    for i, h in enumerate(shas):
+        if literals[i] is None:
+            literals[i] = cached[h]
+    return literals  # type: ignore[return-value]
 
 
 def _unchanged_keys(
