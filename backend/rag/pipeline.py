@@ -13,6 +13,12 @@ from langchain_core.documents import Document
 from backend.rag.embeddings import text_embeddings
 from backend.rag.hybrid import hybrid_retriever
 from backend.rag.rerank import reranking_retriever
+from backend.rag.routing import build_filter, choose_strategy
+from backend.rag.transform import (
+    decomposition_retriever,
+    hyde_retriever,
+    multiquery_retriever,
+)
 from core.schemas import DocType, RetrievedChunk
 
 FETCH_K = 50  # over-fetch; the reranker trims to top_k
@@ -25,18 +31,40 @@ def retrieve(
     table: str = "prose_chunks",
     search_filter: dict | None = None,
     acl_groups: list[str] | None = None,
+    route: bool = True,
 ) -> list[Document]:
-    # Recall-then-precision: hybrid (dense + BM25, RRF-fused) over-fetch (k=50)
-    # -> cross-encoder rerank to top_k. Query-intent routing is layered on next.
-    base = hybrid_retriever(
-        text_embeddings(),
-        table=table,
-        k=FETCH_K,
-        search_filter=search_filter,
-        acl_groups=acl_groups or ["all"],
+    """route -> filter -> choose transform -> hybrid -> rerank.
+
+    Set route=False (or pass an explicit search_filter) to skip the Haiku
+    intent/strategy classification — useful for evals and exact-identifier paths.
+    """
+    if route and search_filter is None:
+        search_filter = build_filter(question)
+        strategy = choose_strategy(question)
+    else:
+        strategy = "none"
+
+    base = reranking_retriever(
+        hybrid_retriever(
+            text_embeddings(),
+            table=table,
+            k=FETCH_K,
+            search_filter=search_filter or {},
+            acl_groups=acl_groups or ["all"],
+        ),
+        top_k=top_k,
     )
-    retriever = reranking_retriever(base, top_k=top_k)
-    return list(retriever.invoke(question))
+
+    if strategy == "multiquery":
+        retriever = multiquery_retriever(base)
+    elif strategy == "hyde":
+        retriever = hyde_retriever(base)
+    elif strategy == "decomposition":
+        retriever = decomposition_retriever(base)
+    else:  # "none" — straight hybrid + rerank
+        retriever = base
+
+    return list(retriever.invoke(question))[:top_k]
 
 
 def docs_to_chunks(docs: list[Document]) -> list[RetrievedChunk]:
