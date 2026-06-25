@@ -25,6 +25,9 @@ install:     ## Sync deps into .venv from pyproject (uv) or pip fallback
 ingest:      ## Run the offline ingestion pipeline over the demo corpus
 	uv run python -m ingestion.run || python -m ingestion.run
 
+ingest-worker: ## Drain queued /ingest jobs once (run on a loop/cron in prod)
+	uv run python -m ingestion.jobs || python -m ingestion.jobs
+
 run:         ## Run the FastAPI backend with autoreload
 	uv run uvicorn backend.main:app --reload --port 8000 || \
 		uvicorn backend.main:app --reload --port 8000
