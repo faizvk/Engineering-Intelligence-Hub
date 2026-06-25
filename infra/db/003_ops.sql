@@ -8,6 +8,7 @@
 CREATE TABLE IF NOT EXISTS request_costs (
     id                          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     conversation_id             TEXT,
+    user_id                     TEXT,                       -- for per-user spend caps
     model                       TEXT          NOT NULL,
     input_tokens                INT           NOT NULL DEFAULT 0,
     output_tokens               INT           NOT NULL DEFAULT 0,
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS request_costs (
     created_at                  TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS request_costs_created_idx ON request_costs (created_at);
+CREATE INDEX IF NOT EXISTS request_costs_user_day_idx ON request_costs (user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS feedback (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

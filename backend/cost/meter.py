@@ -30,7 +30,9 @@ def cache_hit(usage: Any) -> bool:
     return getattr(usage, "cache_read_input_tokens", 0) > 0
 
 
-async def record_usage(db, conversation_id: str | None, usage: Any) -> float | None:
+async def record_usage(
+    db, conversation_id: str | None, usage: Any, user_id: str | None = None
+) -> float | None:
     """Persist a request_costs row and return the computed cost."""
     if usage is None:
         return None
@@ -42,12 +44,13 @@ async def record_usage(db, conversation_id: str | None, usage: Any) -> float | N
     await db.execute(
         text(
             """INSERT INTO request_costs
-                 (conversation_id, model, input_tokens, output_tokens,
+                 (conversation_id, user_id, model, input_tokens, output_tokens,
                   cache_read_input_tokens, cache_creation_input_tokens, cost_usd)
-               VALUES (:cid, :model, :it, :ot, :crit, :ccit, :cost)"""
+               VALUES (:cid, :uid, :model, :it, :ot, :crit, :ccit, :cost)"""
         ),
         {
             "cid": conversation_id,
+            "uid": user_id,
             "model": usage.model,
             "it": usage.input_tokens,
             "ot": usage.output_tokens,
@@ -58,3 +61,17 @@ async def record_usage(db, conversation_id: str | None, usage: Any) -> float | N
     )
     await db.commit()
     return cost
+
+
+async def daily_spend(db, user_id: str) -> float:
+    """Total USD this user has spent since the start of today (UTC)."""
+    from sqlalchemy import text
+
+    row = await db.execute(
+        text(
+            "SELECT COALESCE(SUM(cost_usd), 0) FROM request_costs "
+            "WHERE user_id = :u AND created_at >= date_trunc('day', now())"
+        ),
+        {"u": user_id},
+    )
+    return float(row.scalar() or 0.0)

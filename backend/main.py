@@ -12,9 +12,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from backend.api import feedback, health, query
+from backend.security.ratelimit import limiter
 from core.db import dispose_engine
+from slowapi import _rate_limit_exceeded_handler
 
 
 @asynccontextmanager
@@ -32,6 +36,10 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    # Per-principal rate limiting (slowapi): register the limiter, handler, middleware.
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
     # CORS: allow exactly the frontend origin(s), configurable per environment.
     origins = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000").split(",")
     app.add_middleware(

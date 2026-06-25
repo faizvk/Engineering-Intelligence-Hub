@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -16,6 +16,7 @@ from backend.cost.meter import record_usage
 from backend.rag.service import answer_query, stream_query
 from backend.security.auth import current_principal
 from backend.security.principal import Principal
+from backend.security.ratelimit import enforce_spend_cap, limiter, per_minute_limit
 from core.db import get_db
 from core.schemas import Citation, Usage
 
@@ -34,25 +35,32 @@ class QueryResponse(BaseModel):
 
 
 @router.post("", response_model=QueryResponse)
+@limiter.limit(per_minute_limit)
 async def query(
+    request: Request,
     req: QueryRequest,
     db=Depends(get_db),
     p: Principal = Depends(current_principal),
 ) -> QueryResponse:
+    await enforce_spend_cap(db, p.user_id)
     # acl_groups come from the authenticated principal, NEVER from the request body.
     result = answer_query(req.question, acl_groups=p.groups)
-    await record_usage(db, req.conversation_id, result.usage)  # sets usage.cost_usd
+    await record_usage(db, req.conversation_id, result.usage, user_id=p.user_id)
     return QueryResponse(
         answer=result.answer, citations=result.citations, usage=result.usage
     )
 
 
 @router.post("/stream")
+@limiter.limit(per_minute_limit)
 async def query_stream(
+    request: Request,
     req: QueryRequest,
     db=Depends(get_db),
     p: Principal = Depends(current_principal),
 ) -> StreamingResponse:
+    await enforce_spend_cap(db, p.user_id)
+
     async def event_source():
         captured_usage: dict | None = None
         async for event, data in stream_query(req.question, acl_groups=p.groups):
@@ -62,7 +70,9 @@ async def query_stream(
         # Persist usage the same way the non-streaming path does (consistent metrics).
         if captured_usage:
             try:
-                await record_usage(db, req.conversation_id, Usage(**captured_usage))
+                await record_usage(
+                    db, req.conversation_id, Usage(**captured_usage), user_id=p.user_id
+                )
             except Exception:
                 pass
         yield _sse("done", {})
