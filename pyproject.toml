@@ -59,7 +59,7 @@ dev = [
 ]
 eval = [
   "ragas>=0.2.6,<0.3",
-  "datasets>=3.0,<4.0",
+  "datasets>=3.0,<6.0",
 ]
 
 [project.urls]
