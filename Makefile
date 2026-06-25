@@ -41,8 +41,11 @@ test:        ## Run the test suite
 eval:        ## Run the RAGAS + retrieval eval suite
 	uv run python -m evals.run || python -m evals.run
 
+hooks:       ## Install pre-commit git hooks
+	uv run pre-commit install || pre-commit install
+
 lint:        ## Lint and type-check
-	uv run ruff check . && uv run mypy core backend ingestion
+	uv run ruff check . && uv run mypy core backend ingestion evals
 
 fmt:         ## Auto-format and fix
 	uv run ruff format . && uv run ruff check --fix .
