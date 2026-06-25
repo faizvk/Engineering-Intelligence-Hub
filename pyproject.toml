@@ -45,7 +45,7 @@ dependencies = [
   "tiktoken>=0.8,<1.0",
 
   # --- Observability ---
-  "langsmith>=0.1.140,<0.2",
+  "langsmith>=0.1.140,<0.10",
 ]
 
 [project.optional-dependencies]
