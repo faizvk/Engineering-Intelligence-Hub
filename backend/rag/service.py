@@ -19,6 +19,7 @@ import anthropic
 from backend.llm.answer import answer
 from backend.llm.client import DEFAULT_MODEL
 from backend.rag.pipeline import docs_to_chunks, retrieve
+from backend.rag.scoring import NO_ANSWER
 from core.schemas import Citation, Usage
 
 
@@ -48,6 +49,8 @@ def answer_query(
 ) -> QueryResult:
     docs = retrieve(question, top_k=top_k, acl_groups=acl_groups)
     chunks = docs_to_chunks(docs)
+    if not chunks:  # no confident context — don't call Claude, don't hallucinate
+        return QueryResult(answer=NO_ANSWER)
     res = _answer_with_fallback(question, chunks)
     return QueryResult(
         answer=res.text,
@@ -69,6 +72,9 @@ async def stream_query(
     """Yield (event, data) pairs: many 'token', then 'sources', then 'usage'."""
     docs = retrieve(question, top_k=top_k, acl_groups=acl_groups)
     chunks = docs_to_chunks(docs)
+    if not chunks:  # honest no-answer, no Claude call
+        yield ("token", {"text": NO_ANSWER})
+        return
     q: queue.Queue = queue.Queue()
 
     def run() -> None:

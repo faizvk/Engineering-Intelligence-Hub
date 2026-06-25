@@ -14,6 +14,7 @@ from backend.rag.embeddings import text_embeddings
 from backend.rag.hybrid import hybrid_retriever
 from backend.rag.rerank import reranking_retriever
 from backend.rag.routing import build_filter, choose_strategy
+from backend.rag.scoring import above_floor
 from backend.rag.transform import (
     decomposition_retriever,
     hyde_retriever,
@@ -63,11 +64,13 @@ def retrieve(
         retriever = base
 
     try:
-        return list(retriever.invoke(question))[:top_k]
+        docs = list(retriever.invoke(question))[:top_k]
     except Exception:
         # Voyage rerank (or a transform LLM) unavailable — degrade to hybrid-only
         # (dense + BM25, no rerank) rather than 500. Honest, still useful.
-        return list(hybrid.invoke(question))[:top_k]
+        docs = list(hybrid.invoke(question))[:top_k]
+    # Drop chunks the reranker judged below the floor; an empty result -> no-answer.
+    return above_floor(docs)
 
 
 def docs_to_chunks(docs: list[Document]) -> list[RetrievedChunk]:
