@@ -1,15 +1,21 @@
-"""The app builds and exposes /health. Skipped automatically where the web
-stack isn't installed, so the suite stays green in a bare environment.
+"""/health responds (200 when the DB is reachable, 503 when not) and unknown
+routes 404. Behavioral via TestClient — robust across FastAPI versions (newer
+ones lazily wrap included routers, so inspecting app.routes[*].path is brittle).
+Skipped where the web stack isn't installed.
 """
 
 import pytest
 
 
-def test_health_route_registered():
+def test_health_route_responds():
     pytest.importorskip("fastapi")
     pytest.importorskip("sqlalchemy")
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
     from backend.main import create_app
 
-    app = create_app()
-    paths = {getattr(r, "path", None) for r in app.routes}
-    assert "/health" in paths
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    # Route exists: 200 if Postgres is up, 503 if it's unreachable — not 404.
+    assert client.get("/health").status_code in (200, 503)
+    assert client.get("/no-such-route").status_code == 404
