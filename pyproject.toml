@@ -45,7 +45,8 @@ dependencies = [
   "tiktoken>=0.8,<1.0",
 
   # --- Observability ---
-  "langsmith>=0.1.140,<0.2",
+  # langchain 0.3.x pulls langsmith ~0.9, so cap at <1.0 (not <0.2, which fails to resolve).
+  "langsmith>=0.1.140,<1.0",
 ]
 
 [project.optional-dependencies]
