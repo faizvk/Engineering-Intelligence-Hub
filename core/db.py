@@ -8,8 +8,7 @@ the FastAPI request path and the ingestion CLI.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from typing import Sequence
+from collections.abc import AsyncIterator, Sequence
 
 import psycopg
 from sqlalchemy.ext.asyncio import (
@@ -25,9 +24,9 @@ _settings = get_settings()
 # Connection pooling, sized for the worker count (see deployment notes).
 engine = create_async_engine(
     _settings.database_url,
-    pool_size=10,          # steady connections per process
-    max_overflow=10,       # burst headroom
-    pool_pre_ping=True,    # drop dead connections (managed PG recycles them)
+    pool_size=10,  # steady connections per process
+    max_overflow=10,  # burst headroom
+    pool_pre_ping=True,  # drop dead connections (managed PG recycles them)
     pool_recycle=1800,
 )
 

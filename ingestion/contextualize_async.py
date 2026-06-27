@@ -19,9 +19,7 @@ from core.settings import get_settings
 from ingestion.contextualize import CONTEXT_PROMPT
 
 _s = get_settings()
-_aclient = anthropic.AsyncAnthropic(
-    api_key=_s.anthropic_api_key.get_secret_value(), max_retries=3
-)
+_aclient = anthropic.AsyncAnthropic(api_key=_s.anthropic_api_key.get_secret_value(), max_retries=3)
 _SEM = asyncio.Semaphore(8)  # bound concurrency to stay under rate limits
 
 
@@ -37,9 +35,7 @@ async def _ctx_one(full_doc: str, chunk):
                     "cache_control": {"type": "ephemeral"},
                 }
             ],
-            messages=[
-                {"role": "user", "content": CONTEXT_PROMPT.format(chunk=chunk.page_content)}
-            ],
+            messages=[{"role": "user", "content": CONTEXT_PROMPT.format(chunk=chunk.page_content)}],
         )
     blurb = next(b.text for b in resp.content if b.type == "text")
     chunk.page_content = f"{blurb}\n\n{chunk.page_content}"
@@ -52,9 +48,7 @@ async def contextualize_all_async(parent_text: dict[str, str], chunks: list) -> 
     for ch in chunks:
         by_parent[ch.metadata["path"]].append(ch)
     tasks = [
-        _ctx_one(parent_text.get(path, ""), c)
-        for path, group in by_parent.items()
-        for c in group
+        _ctx_one(parent_text.get(path, ""), c) for path, group in by_parent.items() for c in group
     ]
     return list(await asyncio.gather(*tasks))
 

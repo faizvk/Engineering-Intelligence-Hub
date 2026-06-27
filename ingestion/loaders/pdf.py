@@ -16,7 +16,9 @@ from ingestion.redact import redact
 from ingestion.schema import ChunkMetadata, DocType, utcnow_iso
 
 
-def load_pdfs(paths: list[str], source: str = "pdfs", acl: list[str] | None = None) -> list[Document]:
+def load_pdfs(
+    paths: list[str], source: str = "pdfs", acl: list[str] | None = None
+) -> list[Document]:
     docs: list[Document] = []
     for p in paths:
         reader = PdfReader(p)

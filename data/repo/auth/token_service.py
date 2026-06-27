@@ -3,7 +3,7 @@
 import secrets
 import time
 
-ACCESS_TOKEN_TTL = 15 * 60        # 15 minutes
+ACCESS_TOKEN_TTL = 15 * 60  # 15 minutes
 REFRESH_TOKEN_TTL = 30 * 24 * 3600  # 30 days
 
 
@@ -11,8 +11,8 @@ class TokenService:
     """Issues short-lived access tokens and rotates refresh tokens on use."""
 
     def __init__(self, signer, store):
-        self._signer = signer      # RS256 JWT signer
-        self._store = store        # hashed refresh-token store (Postgres)
+        self._signer = signer  # RS256 JWT signer
+        self._store = store  # hashed refresh-token store (Postgres)
 
     def issue(self, user_id: str, groups: list[str]) -> dict:
         access = self._signer.sign(

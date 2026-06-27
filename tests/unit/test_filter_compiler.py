@@ -12,8 +12,11 @@ def test_first_class_columns_and_operators():
     where: list[str] = []
     params: dict = {}
     _compile_filter(
-        {"doc_type": {"$eq": "incident"}, "repo": {"$in": ["a", "b"]},
-         "created_at": {"$gte": "2026-01-01"}},
+        {
+            "doc_type": {"$eq": "incident"},
+            "repo": {"$in": ["a", "b"]},
+            "created_at": {"$gte": "2026-01-01"},
+        },
         where,
         params,
     )

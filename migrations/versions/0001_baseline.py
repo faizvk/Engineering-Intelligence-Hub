@@ -81,5 +81,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    for table in ("ingest_jobs", "feedback", "request_costs", "embed_cache", "code_chunks", "prose_chunks"):
+    for table in (
+        "ingest_jobs",
+        "feedback",
+        "request_costs",
+        "embed_cache",
+        "code_chunks",
+        "prose_chunks",
+    ):
         op.execute(f"DROP TABLE IF EXISTS {table} CASCADE")

@@ -33,11 +33,7 @@ def load_sources() -> list[Document]:
     if jira.exists():
         raw += incidents.load_jira_incidents(str(jira))
     diagram_dir = DATA / "diagrams"
-    images = [
-        str(p)
-        for ext in ("*.png", "*.jpg", "*.jpeg")
-        for p in diagram_dir.glob(ext)
-    ]
+    images = [str(p) for ext in ("*.png", "*.jpg", "*.jpeg") for p in diagram_dir.glob(ext)]
     if images:
         raw += diagrams.load_diagrams(images, source="diagrams")
     pdfs = [str(p) for p in DATA.rglob("*.pdf")]

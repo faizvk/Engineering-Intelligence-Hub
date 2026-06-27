@@ -38,9 +38,7 @@ def submit_context_batch(jobs: list[tuple[str, str, str]]):
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],
-                messages=[
-                    {"role": "user", "content": CONTEXT_PROMPT.format(chunk=chunk_text)}
-                ],
+                messages=[{"role": "user", "content": CONTEXT_PROMPT.format(chunk=chunk_text)}],
             ),
         )
         for (chunk_id, full_doc, chunk_text) in jobs

@@ -11,7 +11,7 @@ overlaps nothing, so a principal with no groups retrieves nothing (default deny)
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 # Mandatory predicate appended to every retrieval WHERE. Bind :acl as text[].
 ACL_PREDICATE = "acl && %(acl)s::text[]"

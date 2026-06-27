@@ -19,8 +19,12 @@ _PNG = base64.b64decode(
 
 def _diagram(path):
     return RetrievedChunk(
-        doc_id="d#0", title="Arch", text="...", source_uri="diagrams/a.png",
-        doc_type=DocType.DIAGRAM, metadata={"image_path": str(path)},
+        doc_id="d#0",
+        title="Arch",
+        text="...",
+        source_uri="diagrams/a.png",
+        doc_type=DocType.DIAGRAM,
+        metadata={"image_path": str(path)},
     )
 
 

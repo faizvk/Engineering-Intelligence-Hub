@@ -20,6 +20,4 @@ async def health() -> JSONResponse:
             await conn.execute(text("SELECT 1"))
         return JSONResponse({"status": "ok"})
     except Exception as exc:  # DB unreachable -> not ready
-        return JSONResponse(
-            {"status": "degraded", "detail": str(exc)}, status_code=503
-        )
+        return JSONResponse({"status": "degraded", "detail": str(exc)}, status_code=503)

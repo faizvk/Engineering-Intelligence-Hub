@@ -7,7 +7,7 @@ drives generation quality and lets you keep k (and token cost) small.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def hit_rate(retrieved: Sequence[str], expected: set[str]) -> float:

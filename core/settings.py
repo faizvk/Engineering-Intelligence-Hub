@@ -25,12 +25,12 @@ class Settings(BaseSettings):
     # --- Anthropic / Claude (generation + routing) ---
     anthropic_api_key: SecretStr = Field(..., alias="ANTHROPIC_API_KEY")
     model_workhorse: str = Field("claude-sonnet-4-6", alias="MODEL_WORKHORSE")  # $3 / $15
-    model_hard: str = Field("claude-opus-4-8", alias="MODEL_HARD")              # $5 / $25
-    model_router: str = Field("claude-haiku-4-5", alias="MODEL_ROUTER")         # $1 / $5
+    model_hard: str = Field("claude-opus-4-8", alias="MODEL_HARD")  # $5 / $25
+    model_router: str = Field("claude-haiku-4-5", alias="MODEL_ROUTER")  # $1 / $5
 
     # --- Voyage (embeddings + reranking) ---
     voyage_api_key: SecretStr = Field(..., alias="VOYAGE_API_KEY")
-    embed_model: str = Field("voyage-3.5", alias="EMBED_MODEL")           # general prose
+    embed_model: str = Field("voyage-3.5", alias="EMBED_MODEL")  # general prose
     embed_model_code: str = Field("voyage-code-3", alias="EMBED_MODEL_CODE")
     rerank_model: str = Field("rerank-2.5", alias="RERANK_MODEL")
     embed_dim: int = Field(1024, alias="EMBED_DIM")  # MUST equal the vector(N) column width

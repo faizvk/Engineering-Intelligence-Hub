@@ -48,9 +48,7 @@ def contextualize_doc(full_document: str, chunks: list[Document]) -> list[Docume
                     "cache_control": {"type": "ephemeral"},  # the whole win
                 }
             ],
-            messages=[
-                {"role": "user", "content": CONTEXT_PROMPT.format(chunk=ch.page_content)}
-            ],
+            messages=[{"role": "user", "content": CONTEXT_PROMPT.format(chunk=ch.page_content)}],
         )
         blurb = next(b.text for b in resp.content if b.type == "text")
         ch.page_content = f"{blurb}\n\n{ch.page_content}"  # embed blurb + chunk
@@ -59,9 +57,7 @@ def contextualize_doc(full_document: str, chunks: list[Document]) -> list[Docume
     return out
 
 
-def contextualize_all(
-    parent_text: dict[str, str], chunks: list[Document]
-) -> list[Document]:
+def contextualize_all(parent_text: dict[str, str], chunks: list[Document]) -> list[Document]:
     """Group chunks by parent path, then contextualize each group."""
     by_parent: dict[str, list[Document]] = defaultdict(list)
     for ch in chunks:

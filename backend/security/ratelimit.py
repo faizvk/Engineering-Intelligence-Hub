@@ -30,6 +30,4 @@ def per_minute_limit() -> str:
 async def enforce_spend_cap(db, user_id: str) -> None:
     cap = get_settings().daily_spend_cap_usd
     if await daily_spend(db, user_id) >= cap:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, f"daily spend cap (${cap}) reached"
-        )
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"daily spend cap (${cap}) reached")

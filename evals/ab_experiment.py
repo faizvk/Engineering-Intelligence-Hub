@@ -35,11 +35,15 @@ def _ids(question: str, *, rerank: bool, k: int = 5) -> list[str]:
 
 
 def main() -> dict:
-    rows = [json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
     out: dict[str, float] = {}
     for name, cfg in CONFIGS.items():
         mrr = statistics.mean(
-            reciprocal_rank(_ids(r["question"], rerank=cfg["rerank"]), set(r["expected_source_ids"]))
+            reciprocal_rank(
+                _ids(r["question"], rerank=cfg["rerank"]), set(r["expected_source_ids"])
+            )
             for r in rows
         )
         out[name] = round(mrr, 4)

@@ -38,7 +38,9 @@ def _retrieved_ids(question: str, k: int) -> list[str]:
 
 
 def main() -> dict:
-    rows = [json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
     results = {"hit_rate": [], "recall@5": [], "precision@5": [], "mrr": []}
     by_category: dict[str, list[float]] = defaultdict(list)
     for row in rows:

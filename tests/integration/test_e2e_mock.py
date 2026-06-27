@@ -33,12 +33,16 @@ class _FakeStream:
 
     def get_final_message(self):
         cit = SimpleNamespace(
-            document_index=0, cited_text="Postgres is the primary datastore", document_title=self._title
+            document_index=0,
+            cited_text="Postgres is the primary datastore",
+            document_title=self._title,
         )
         block = SimpleNamespace(type="text", text=self._text, citations=[cit])
         usage = SimpleNamespace(
-            input_tokens=120, output_tokens=18,
-            cache_read_input_tokens=0, cache_creation_input_tokens=0,
+            input_tokens=120,
+            output_tokens=18,
+            cache_read_input_tokens=0,
+            cache_creation_input_tokens=0,
         )
         return SimpleNamespace(content=[block], usage=usage, stop_reason="end_turn")
 

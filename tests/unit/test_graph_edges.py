@@ -33,7 +33,4 @@ def test_weak_docs_rewrite_until_cap():
 def test_grounded_ends_else_regenerates_until_cap():
     assert decide_after_generation({"grounded": True, "gen_attempts": 1}) == "end"
     assert decide_after_generation({"grounded": False, "gen_attempts": 1}) == "generate"
-    assert (
-        decide_after_generation({"grounded": False, "gen_attempts": MAX_GEN_ATTEMPTS})
-        == "end"
-    )
+    assert decide_after_generation({"grounded": False, "gen_attempts": MAX_GEN_ATTEMPTS}) == "end"

@@ -26,7 +26,9 @@ class IngestRequest(BaseModel):
 
 
 @router.post("", status_code=202)
-async def ingest(req: IngestRequest, db=Depends(get_db), p: Principal = Depends(current_principal)) -> dict:
+async def ingest(
+    req: IngestRequest, db=Depends(get_db), p: Principal = Depends(current_principal)
+) -> dict:
     row = await db.execute(
         text(
             """INSERT INTO ingest_jobs (source_uri, doc_type, content, user_id, acl)
@@ -46,7 +48,9 @@ async def ingest(req: IngestRequest, db=Depends(get_db), p: Principal = Depends(
 
 
 @router.get("/{job_id}")
-async def job_status(job_id: int, db=Depends(get_db), p: Principal = Depends(current_principal)) -> dict:
+async def job_status(
+    job_id: int, db=Depends(get_db), p: Principal = Depends(current_principal)
+) -> dict:
     # Only the job's owner can see its status (and error text).
     row = await db.execute(
         text("SELECT status, error FROM ingest_jobs WHERE id = :i AND user_id = :u"),

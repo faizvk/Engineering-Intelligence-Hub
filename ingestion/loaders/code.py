@@ -16,10 +16,22 @@ from ingestion.schema import ChunkMetadata, DocType, utcnow_iso
 
 # Map file extension -> LangChain Language enum value (used by the code splitter).
 EXT_TO_LANG = {
-    ".py": "python", ".js": "js", ".ts": "ts", ".tsx": "ts",
-    ".go": "go", ".java": "java", ".rs": "rust", ".rb": "ruby",
-    ".cpp": "cpp", ".c": "cpp", ".cs": "csharp", ".php": "php",
-    ".kt": "kotlin", ".scala": "scala", ".sol": "sol", ".md": "markdown",
+    ".py": "python",
+    ".js": "js",
+    ".ts": "ts",
+    ".tsx": "ts",
+    ".go": "go",
+    ".java": "java",
+    ".rs": "rust",
+    ".rb": "ruby",
+    ".cpp": "cpp",
+    ".c": "cpp",
+    ".cs": "csharp",
+    ".php": "php",
+    ".kt": "kotlin",
+    ".scala": "scala",
+    ".sol": "sol",
+    ".md": "markdown",
 }
 
 _EXCLUDE = ("node_modules/", "/vendor/", "/dist/", "/.git/", "/build/")
@@ -34,8 +46,7 @@ def load_repo(clone_url: str, repo_path: str, branch: str = "main") -> list[Docu
         repo_path=repo_path,
         branch=branch,
         file_filter=lambda p: (
-            any(p.endswith(ext) for ext in EXT_TO_LANG)
-            and not any(x in p for x in _EXCLUDE)
+            any(p.endswith(ext) for ext in EXT_TO_LANG) and not any(x in p for x in _EXCLUDE)
         ),
     )
     docs = loader.load()

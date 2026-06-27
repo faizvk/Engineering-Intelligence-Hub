@@ -46,8 +46,7 @@ retriever = RunnableLambda(lambda q: retrieve(q))
 
 def format_docs(docs: list[Document]) -> str:
     return "\n\n".join(
-        f"[source: {d.metadata.get('source_uri', 'unknown')}]\n{d.page_content}"
-        for d in docs
+        f"[source: {d.metadata.get('source_uri', 'unknown')}]\n{d.page_content}" for d in docs
     )
 
 
@@ -106,8 +105,7 @@ conversational_chain = (
         standalone=condense_q,
         question=itemgetter("question"),
         history=itemgetter("history"),
-    )
-    .assign(context=itemgetter("standalone") | retriever | format_docs)
+    ).assign(context=itemgetter("standalone") | retriever | format_docs)
     | _answer_prompt
     | llm_sonnet
     | StrOutputParser()

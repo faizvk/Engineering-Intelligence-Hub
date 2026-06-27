@@ -36,7 +36,5 @@ def test_chunk_index_is_sequential_per_source():
 
 def test_incidents_are_not_resplit():
     big = "INCIDENT-1\n" + ("x" * 5000)
-    chunks = split_documents(
-        [_doc(big, doc_type=DocType.INCIDENT.value, path="incidents/1.md")]
-    )
+    chunks = split_documents([_doc(big, doc_type=DocType.INCIDENT.value, path="incidents/1.md")])
     assert len(chunks) == 1

@@ -8,7 +8,7 @@ the LLM-judged RAGAS faithfulness score. Pure-Python, no API.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def _norm(s: str) -> str:

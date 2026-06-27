@@ -27,9 +27,7 @@ def process_pending(limit: int = 50) -> int:
         jobs = cur.fetchall()
         ids = [j[0] for j in jobs]
         if ids:
-            cur.execute(
-                "UPDATE ingest_jobs SET status = 'processing' WHERE id = ANY(%s)", (ids,)
-            )
+            cur.execute("UPDATE ingest_jobs SET status = 'processing' WHERE id = ANY(%s)", (ids,))
         conn.commit()
 
     for job_id, source_uri, doc_type, content, acl in jobs:

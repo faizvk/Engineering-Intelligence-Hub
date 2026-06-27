@@ -13,7 +13,7 @@ Time filters are computed as ISO timestamps in Python — NOT as SQL strings lik
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
@@ -54,7 +54,7 @@ def build_filter(query: str) -> dict:
     intent = route.get("intent")
     if intent == "incident":
         f["doc_type"] = {"$eq": "incident"}
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        cutoff = (datetime.now(UTC) - timedelta(days=90)).isoformat()
         f["created_at"] = {"$gte": cutoff}  # ISO literal, computed in Python
     elif intent == "docs":
         f["doc_type"] = {"$in": ["doc", "diagram"]}

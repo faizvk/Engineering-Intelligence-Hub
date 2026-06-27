@@ -45,9 +45,7 @@ def generate(state: RAGState) -> RAGState:
     # Escalate to Opus once we've already retried — a hard-query signal.
     llm = llm_opus if state.get("retries", 0) >= 1 else llm_sonnet
     chain = prompt | llm
-    msg = chain.invoke(
-        {"context": format_docs(state["documents"]), "question": state["question"]}
-    )
+    msg = chain.invoke({"context": format_docs(state["documents"]), "question": state["question"]})
     return {"generation": msg.content, "gen_attempts": 1}
 
 
@@ -59,6 +57,4 @@ def check_hallucination(state: RAGState) -> RAGState:
 
 
 def reject(state: RAGState) -> RAGState:
-    return {
-        "generation": "This question is out of scope for the engineering knowledge base."
-    }
+    return {"generation": "This question is out of scope for the engineering knowledge base."}

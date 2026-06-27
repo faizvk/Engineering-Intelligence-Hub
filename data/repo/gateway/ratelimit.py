@@ -1,8 +1,8 @@
 """Per-user rate limiting at the gateway (Redis token bucket)."""
 
-DEFAULT_RATE = 20      # requests/second per authenticated user
+DEFAULT_RATE = 20  # requests/second per authenticated user
 DEFAULT_BURST = 40
-UNAUTH_RATE = 5        # requests/second per IP for login/health
+UNAUTH_RATE = 5  # requests/second per IP for login/health
 
 
 class RateLimiter:

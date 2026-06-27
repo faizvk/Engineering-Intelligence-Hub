@@ -10,7 +10,7 @@ pipeline has no heavy dependency.
 from __future__ import annotations
 
 import re
-from typing import Callable
+from collections.abc import Callable
 
 _PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "[EMAIL]"),
