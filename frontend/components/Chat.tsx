@@ -29,11 +29,19 @@ function uniqueSources(citations: Citation[]): string[] {
 let _counter = 0;
 const nextId = () => `m${++_counter}`;
 
+function isLink(src: string): boolean {
+  return src.startsWith("http://") || src.startsWith("https://");
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  // Stable per-session id so follow-ups thread into one conversation (history-aware retrieval).
+  const conversationId = useRef<string>(
+    `c-${Math.random().toString(36).slice(2)}`,
+  ).current;
 
   function patchLast(patch: Partial<Message>) {
     setMessages((m) => {
@@ -65,7 +73,7 @@ export default function Chat() {
           }),
         onSources: (citations) => patchLast({ citations }),
         onUsage: (usage) => patchLast({ usage }),
-      });
+      }, conversationId);
     } catch {
       patchLast({ content: "Could not reach the backend.", error: true });
     } finally {
@@ -114,12 +122,26 @@ export default function Chat() {
                 </div>
                 {m.citations && m.citations.length > 0 && (
                   <div className="sources">
-                    {uniqueSources(m.citations).map((src, idx) => (
-                      <span className="pill" key={src} title={src}>
-                        <span className="idx">[{idx + 1}]</span>
-                        {src}
-                      </span>
-                    ))}
+                    {uniqueSources(m.citations).map((src, idx) =>
+                      isLink(src) ? (
+                        <a
+                          className="pill"
+                          key={src}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={src}
+                        >
+                          <span className="idx">[{idx + 1}]</span>
+                          {src}
+                        </a>
+                      ) : (
+                        <span className="pill" key={src} title={src}>
+                          <span className="idx">[{idx + 1}]</span>
+                          {src}
+                        </span>
+                      ),
+                    )}
                   </div>
                 )}
                 {!m.error && m.content && (

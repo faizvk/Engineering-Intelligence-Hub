@@ -23,11 +23,12 @@ export async function streamAnswer(
     onSources: (c: Citation[]) => void;
     onUsage?: (u: Usage) => void;
   },
+  conversationId?: string,
 ): Promise<void> {
   const res = await fetch(`${API}/query/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, conversation_id: conversationId }),
   });
   if (!res.ok || !res.body) throw new Error(`backend error ${res.status}`);
 
