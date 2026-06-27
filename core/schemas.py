@@ -7,12 +7,12 @@ which map 1:1 onto the prose_chunks/code_chunks columns.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class DocType(str, Enum):
+class DocType(StrEnum):
     """The four content modalities the Hub ingests. Maps to the doc_type column."""
 
     DOC = "doc"
