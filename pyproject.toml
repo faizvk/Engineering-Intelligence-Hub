@@ -81,6 +81,21 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Alembic migrations carry long SQL DDL string literals that don't wrap cleanly.
+"migrations/**" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection pattern puts these calls in argument defaults
+# on purpose — not a B008 bug.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Query",
+  "fastapi.Path",
+  "fastapi.Header",
+  "fastapi.Body",
+]
+
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
