@@ -92,16 +92,17 @@ def _embed_into(table: str, chunks: list[Document], model: str) -> int:
     shas = [sha256(c.page_content) for c in chunks]
     fresh = _unchanged_keys(table, chunks, shas)
 
-    pending = [(c, s) for c, s in zip(chunks, shas) if (c.metadata.get("path"),
-               c.metadata.get("chunk_index", 0)) not in fresh]
+    pending = [
+        (c, s)
+        for c, s in zip(chunks, shas, strict=True)
+        if (c.metadata.get("path"), c.metadata.get("chunk_index", 0)) not in fresh
+    ]
     if not pending:
         return 0
 
-    literals = _embed_cached(
-        [c.page_content for c, _ in pending], [s for _, s in pending], model
-    )
+    literals = _embed_cached([c.page_content for c, _ in pending], [s for _, s in pending], model)
     with raw_connect() as conn, conn.cursor() as cur:
-        for (ch, sha), emb_literal in zip(pending, literals):
+        for (ch, sha), emb_literal in zip(pending, literals, strict=True):
             m = ch.metadata
             cur.execute(
                 _UPSERT.format(table=table),
@@ -143,7 +144,7 @@ def _embed_cached(texts: list[str], shas: list[str], model: str) -> list[str]:
     if miss_idx:
         miss_vecs = embed_batch([texts[i] for i in miss_idx], model=model)
         with raw_connect() as conn, conn.cursor() as cur:
-            for i, vec in zip(miss_idx, miss_vecs):
+            for i, vec in zip(miss_idx, miss_vecs, strict=True):
                 lit = vector_literal(vec)
                 literals[i] = lit
                 cur.execute(
@@ -159,16 +160,14 @@ def _embed_cached(texts: list[str], shas: list[str], model: str) -> list[str]:
     return literals  # type: ignore[return-value]
 
 
-def _unchanged_keys(
-    table: str, chunks: list[Document], shas: list[str]
-) -> set[tuple[str, int]]:
+def _unchanged_keys(table: str, chunks: list[Document], shas: list[str]) -> set[tuple[str, int]]:
     """Return (source_uri, chunk_index) keys whose stored sha already matches."""
     sources = sorted({c.metadata.get("path", "") for c in chunks})
     if not sources:
         return set()
     by_key = {
         (c.metadata.get("path", ""), c.metadata.get("chunk_index", 0)): sha
-        for c, sha in zip(chunks, shas)
+        for c, sha in zip(chunks, shas, strict=True)
     }
     unchanged: set[tuple[str, int]] = set()
     with raw_connect() as conn, conn.cursor() as cur:

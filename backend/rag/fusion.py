@@ -12,7 +12,7 @@ it explicitly so fusion is transparent and unit-testable.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Hashable, Sequence
+from collections.abc import Hashable, Sequence
 
 
 def rrf_fuse(
@@ -24,7 +24,7 @@ def rrf_fuse(
     if weights is None:
         weights = [1.0] * len(ranked_lists)
     scores: dict[Hashable, float] = defaultdict(float)
-    for lst, w in zip(ranked_lists, weights):
+    for lst, w in zip(ranked_lists, weights, strict=True):
         for rank, key in enumerate(lst, start=1):
             scores[key] += w / (c + rank)
     return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
