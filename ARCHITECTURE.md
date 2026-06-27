@@ -1,5 +1,39 @@
 # Architecture
 
+```mermaid
+flowchart TB
+    subgraph INGEST["Ingestion — offline, batch"]
+        SRC["Sources<br/>docs · code · diagrams · incidents · PDFs"]
+        LOAD["Loaders + redaction"]
+        CHUNK["Source-aware chunking"]
+        CTX["Contextualize<br/>Haiku + cached doc prefix"]
+        EMB["Voyage embed<br/>voyage-3.5 / voyage-code-3<br/>(+ content-hash cache)"]
+        SRC --> LOAD --> CHUNK --> CTX --> EMB
+    end
+
+    PG[("Postgres + pgvector<br/>HNSW cosine · tsvector<br/>acl[] · metadata · sha")]
+    EMB -->|upsert / reindex| PG
+
+    subgraph QUERY["Query — online, streaming"]
+        Q["Question + JWT"]
+        ROUTE["Route (Haiku)<br/>filter + strategy"]
+        HYB["Hybrid retrieve<br/>dense + BM25 → RRF<br/>(ACL-filtered in SQL)"]
+        RR["Rerank (rerank-2.5)<br/>→ top-k + score floor"]
+        GEN["Generate<br/>Sonnet / Opus + citations"]
+        Q --> ROUTE --> HYB --> RR --> GEN
+    end
+
+    PG -->|search| HYB
+    GEN -->|tokens + citations + cost| API["FastAPI · SSE"] --> UI["Next.js flat-dark chat"]
+    ROUTE -.-> LS["LangSmith"]
+    RR -.-> LS
+    GEN -.-> LS
+
+    subgraph CRAG["Self-correcting agent (LangGraph)"]
+        G["route → retrieve → grade →<br/>rewrite↺ / generate → check↺"]
+    end
+```
+
 ## Two data paths, one seam
 
 Every RAG system is two pipelines that meet at the vector store:
