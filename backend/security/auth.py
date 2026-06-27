@@ -35,7 +35,7 @@ def current_principal(
                 audience=s.jwt_audience,
             )
         except jwt.PyJWTError:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token")
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token") from None
         principal = principal_from_claims(claims)
     # Expose to the rate limiter's key function.
     request.state.principal = principal
