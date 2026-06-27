@@ -9,9 +9,12 @@ Never regex the prose — parse citations structurally.
 
 from __future__ import annotations
 
+import base64
+import mimetypes
+import pathlib
 from typing import Any
 
-from core.schemas import Citation, RetrievedChunk
+from core.schemas import Citation, DocType, RetrievedChunk
 
 
 def to_document_blocks(chunks: list[RetrievedChunk]) -> list[dict]:
@@ -30,6 +33,34 @@ def to_document_blocks(chunks: list[RetrievedChunk]) -> list[dict]:
                 # context is metadata for the model, not cited text — good for the id/uri.
                 "context": f"source_id={c.doc_id} uri={c.source_uri}",
                 "citations": {"enabled": True},
+            }
+        )
+    return blocks
+
+
+def to_image_blocks(chunks: list[RetrievedChunk]) -> list[dict]:
+    """For diagram chunks whose original image is on disk, attach the image so
+    Claude can reason over the actual diagram (not just its transcribed text).
+
+    Only fires for DocType.DIAGRAM with a readable image_path; otherwise empty.
+    """
+    blocks: list[dict] = []
+    for c in chunks:
+        if c.doc_type != DocType.DIAGRAM:
+            continue
+        path = c.metadata.get("image_path")
+        if not path or not pathlib.Path(path).is_file():
+            continue
+        media_type, _ = mimetypes.guess_type(path)
+        data = base64.standard_b64encode(pathlib.Path(path).read_bytes()).decode()
+        blocks.append(
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type or "image/png",
+                    "data": data,
+                },
             }
         )
     return blocks

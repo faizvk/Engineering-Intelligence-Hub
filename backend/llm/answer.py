@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from backend.llm.blocks import extract_citations, to_document_blocks
+from backend.llm.blocks import extract_citations, to_document_blocks, to_image_blocks
 from backend.llm.client import HARD_MODEL, client
 from backend.llm.prompts import CORE_CONTEXT, SYSTEM_PROMPT
 from backend.llm.router import route
@@ -66,10 +66,13 @@ def answer(
         },
     ]
 
-    # Per-query content: retrieved chunks (NOT cached) + the question, LAST.
-    user_content = to_document_blocks(chunks) + [
-        {"type": "text", "text": f"Question: {question}"}
-    ]
+    # Per-query content: retrieved chunks (NOT cached) + any diagram images they
+    # reference + the question, LAST.
+    user_content = (
+        to_document_blocks(chunks)
+        + to_image_blocks(chunks)
+        + [{"type": "text", "text": f"Question: {question}"}]
+    )
 
     # Generous on the hard path so multi-hop answers don't truncate mid-thought.
     max_tokens = 16000 if model == HARD_MODEL else 4096
